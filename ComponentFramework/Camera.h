@@ -32,13 +32,16 @@ public:
 	/// Some getters and setters
 	Matrix4 GetViewMatrix() const {
 
-
-		return  MMath::translate(position) * MMath::toMatrix4(orientation);
+		return MMath::inverse(MMath::toMatrix4(orientation)) * MMath::inverse(MMath::translate(position));
+		//return  MMath::translate(position) * MMath::toMatrix4(orientation);
 	}
 
 	Matrix4 GetProjectionMatrix() const {
 		return projection;
 	}
+
+	void dontTrackY();
+
 
 	Quaternion GetOrientation() const { return orientation; }
 

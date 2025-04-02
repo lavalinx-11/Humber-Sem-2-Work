@@ -32,8 +32,7 @@ Scene3p::~Scene3p() {
 
 bool Scene3p::OnCreate() {
 	Debug::Info("Loading assets Scene3p: ", __FILE__, __LINE__);
-	trackball.XaxisLock = false;
-	trackball.ZaxisLock = false;
+
 	
 
 	jellyfishHead = new Body();
@@ -53,9 +52,19 @@ bool Scene3p::OnCreate() {
 		// Move the anchor position for the next swing through this loop 
 		anchorPos += Vec3(spacing, 0, 0);
 	}
-	// Lets set up the first tentacle (Umer will do this in a not so great way)
-
-
+	tentacleSpheres[0] = new Body();
+	for (int i = 0; i < numSpheresPerAnchor; i++) {
+		tentacleSpheres.push_back(new Body());
+		tentacleSpheres[i]->rad = 0.1f;
+		tentacleSpheres[i]->pos = anchors[anchorIndex]->pos - Vec3(0, spacing * tentacleIndex + 1, 0);
+		tentacleSpheres[i]->mass = 1;
+		tentacleIndex++;
+		if (tentacleIndex == 10) {
+			anchorIndex += 1;
+			tentacleIndex = 0;
+		}
+	}
+	anchorIndex = 0;
 
 	drawNormalsShader = new Shader("shaders/normalVert.glsl", "shaders/normalFrag.glsl", nullptr, nullptr, "shaders/normalGeom.glsl");
 	if (drawNormalsShader->OnCreate() == false) {
@@ -82,7 +91,7 @@ bool Scene3p::OnCreate() {
 	}
 
 
-	
+	cam->dontTrackY();
 	return true;
 }
 
@@ -165,53 +174,50 @@ void Scene3p::HandleEvents(const SDL_Event& sdlEvent) {
 
 
 void Scene3p::Update(const float deltaTime) {
-	//jellyfishHead->UpdatePos(deltaTime);
+	jellyfishHead->UpdatePos(deltaTime);
 
-	//// This code went in my nested loop. Looping over all the anchors and then looping 
-	//// over all the spheres per anchor
+	Vec3 offset = Vec3(0.0f, -2.0f, 40.0f);
+	Vec3 rotatedOffset = QMath::rotate(offset, cam->GetOrientation());
+	cameraPos = (jellyfishHead->pos + rotatedOffset);
+	cam->SetView(cam->GetOrientation(), cameraPos);
 
-	//// Umer will just do this for one tentacle (you need to do all of them)
-	//for (int i = 0; i < 10; i++) {
-	//	float dragCoeff = 0.5f;
-	//	// Start off with laminar flow, so drag force = -cv 
-	//	Vec3 dragForce = -dragCoeff * tentacleSpheres[i]->vel;
+	// This code went in my nested loop. Looping over all the anchors and then looping 
+	// over all the spheres per anchor
 
-	//	// Thank you Sebastien, the code commented below is not helpful, at all
-	//	// It blows up when the velocity is too high
-	//	//if (VMath::mag(tentacleSpheres[i]->vel) > 1.0f) {
-	//	//	// Switch to turbulent flow if the spheres are moving fast 
-	//	//	// That means drag force = -cv^2 
-	//	//	dragForce = -dragCoeff * tentacleSpheres[i]->vel *
-	//	//		VMath::mag(tentacleSpheres[i]->vel);
-	//	//}
+	// Umer will just do this for one tentacle (you need to do all of them)
+	for (int i = 0; i < 10; i++) {
+		float dragCoeff = 0.5f;
+		// Start off with laminar flow, so drag force = -cv 
+		Vec3 dragForce = -dragCoeff * tentacleSpheres[i]->vel;
+	
 
-	//	Vec3 gravityForce = tentacleSpheres[i]->mass * Vec3(0, -10, 0);
-	//	Vec3 windForce = Vec3(0, 0, 0);
-	//	tentacleSpheres[i]->ApplyForce(gravityForce + dragForce + windForce);
-	//	// calculate a first approximation of velocity based on acceleration 
-	//	tentacleSpheres[i]->UpdateVel(deltaTime);
+		Vec3 gravityForce = tentacleSpheres[i]->mass * Vec3(0, -10, 0);
+		Vec3 windForce = Vec3(0, 0, 0);
+		tentacleSpheres[i]->ApplyForce(gravityForce + dragForce + windForce);
+		// calculate a first approximation of velocity based on acceleration 
+		tentacleSpheres[i]->UpdateVel(deltaTime);
 
-	//	// Straight line constraint
-	//	float slope = 5;
-	//	float y_intercept = 0;
-	//	//tentacleSpheres[i]->StraightLineConstraint(slope, y_intercept, deltaTime);
+		// Straight line constraint
+		float slope = 5;
+		float y_intercept = 0;
+		//tentacleSpheres[i]->StraightLineConstraint(slope, y_intercept, deltaTime);
 
-	//	// Quadratic constraint
-	//	float a = 0.1;
-	//	float b = 0;
-	//	float c = -5;
-	//	//tentacleSpheres[i]->QuadraticConstraint(a, b, c, deltaTime);
+		// Quadratic constraint
+		float a = 0.1;
+		float b = 0;
+		float c = -5;
+		//tentacleSpheres[i]->QuadraticConstraint(a, b, c, deltaTime);
 
-	//	float r = 1;
-	//	//tentacleSpheres[i]->CircleConstraint(r, circleCentrePos, deltaTime);
-	//	{
-	//		Vec3 circleCentrePos = tentacleSpheres[7]->pos;
-	//		tentacleSpheres[8]->CircleConstraint(r, circleCentrePos, deltaTime);
-	//	}
-	//	{
-	//		Vec3 circleCentrePos = tentacleSpheres[8]->pos;
-	//		tentacleSpheres[9]->CircleConstraint(r, circleCentrePos, deltaTime);
-	//	}
+		float r = 1;
+		//tentacleSpheres[i]->CircleConstraint(r, circleCentrePos, deltaTime);
+		{
+			Vec3 circleCentrePos = tentacleSpheres[7]->pos;
+			tentacleSpheres[8]->CircleConstraint(r, circleCentrePos, deltaTime);
+		}
+		{
+			Vec3 circleCentrePos = tentacleSpheres[8]->pos;
+			tentacleSpheres[9]->CircleConstraint(r, circleCentrePos, deltaTime);
+		}
 
 
 
@@ -232,39 +238,20 @@ void Scene3p::Update(const float deltaTime) {
 
 
 
-	//	// update position using corrected velocities based on rod constraint 
-	//	tentacleSpheres[8]->UpdatePos(deltaTime);
-	//	tentacleSpheres[9]->UpdatePos(deltaTime);
-	//}
+		// update position using corrected velocities based on rod constraint 
+		tentacleSpheres[8]->UpdatePos(deltaTime);
+		tentacleSpheres[9]->UpdatePos(deltaTime);
+	}
 
-	//// Making a orbit camera
-	//// Visualizing Quaternions book says divide quaternions to get the change 
-	//Quaternion start = cameraOri;
-	//Quaternion end = trackball.getQuat();
-	//// Quaternion changeInOrientation = end / start;
-	//Quaternion changeInOrientation = end * QMath::inverse(start);
-
-	//cameraOri = trackball.getQuat();
-
-	//// Try Umer's scribbles on the board to orbit the sphere
-	//// Step 1 - Move camera so sphere is at origin
-	//cameraPos -= jellyfishHead->pos;
-	//// Step 2 - Rotate around the sphere
-	//cameraPos = QMath::rotate(cameraPos, changeInOrientation);
-	//// Step 3 - Move back
-	//cameraPos += jellyfishHead->pos;
-
-	//// Think about Umer's cat pictures for this next bit
-	//Matrix4 T = MMath::translate(cameraPos);
-	//Matrix4 R = MMath::toMatrix4(cameraOri);
-	//viewMatrix = MMath::inverse(R) * MMath::inverse(T);
-
+	
 }
 
 void Scene3p::Render() const {
 	/// Set the background color then clear the screen
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	cam->RenderSkyBox();
 
 	if (drawInWireMode) {
@@ -273,6 +260,8 @@ void Scene3p::Render() const {
 	else {
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	}
+
+
 
 	glUseProgram(shader->GetProgram());
 	glUniformMatrix4fv(shader->GetUniformID("projectionMatrix"), 1, GL_FALSE, cam->GetProjectionMatrix());

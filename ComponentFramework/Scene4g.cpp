@@ -202,7 +202,13 @@ void Scene4g::Render() const {
 	}
 
 	//glDepthMask(GL_TRUE);
-	
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, heightMap->getTextureID());
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, normalMap->getTextureID());
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, diffuseMap->getTextureID());
 	
 	glUseProgram(tessShader->GetProgram());
 	glUniformMatrix4fv(tessShader->GetUniformID("projectionMatrix"), 1, GL_FALSE, cam->GetProjectionMatrix());
@@ -212,16 +218,9 @@ void Scene4g::Render() const {
 	glUniform3fv(tessShader->GetUniformID("lightPos"), 1, Litpos);
 	terrainMesh->Render(GL_PATCHES);
 
+
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, heightMap->getTextureID());
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, normalMap->getTextureID());
-	glActiveTexture(GL_TEXTURE2);
-	glBindTexture(GL_TEXTURE_2D, diffuseMap->getTextureID());
-
-
-
-	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+	glBindTexture(GL_TEXTURE_2D, 0);
 	glUseProgram(0);
 }
 

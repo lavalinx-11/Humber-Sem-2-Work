@@ -54,17 +54,17 @@ void Trackball::onMouseMove(int x, int y) {
 	float cosAngle = VMath::dot(beginV, endV);
 	if (cosAngle <= VERY_SMALL) {
 		printf("%f\n", cosAngle);
+		return;
 	}
-
 	float angle = acos(cosAngle) * 180.0f / M_PI; /// acos() returns radians must convert to degrees
-	
 	Vec3 rotAxis = VMath::cross(beginV, endV);
-	/*if (XaxisLock == false) {
+	if (XaxisLock == false) {
 		rotAxis.x = 0.0f;
 	}
 	if (ZaxisLock == false) {
 		rotAxis.z = 0.0f;
-	}*/
+	}
+
 	Quaternion delta = QMath::angleAxisRotation(angle, rotAxis); // UN - Songho used the name "delta" quaternion. I like that as it's the change in rotation
 	mouseRotationQuat = prevQuat * delta; // UN - Spent a day realizing that order of multiplication is important here
 }

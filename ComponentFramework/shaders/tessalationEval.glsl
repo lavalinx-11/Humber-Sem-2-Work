@@ -35,7 +35,7 @@ vec4 interpolateVec4(vec4 v0, vec4 v1, vec4 v2) {
 }
 
 
- const float fogDensity = 0.02;
+ const float fogDensity = 0.72;
  const float fogGradient = 1.5;
 
 void main() {

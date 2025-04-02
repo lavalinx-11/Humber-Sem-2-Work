@@ -23,6 +23,7 @@ public:
 	Matrix3 rotationalInertia;
 	float mass = 1;
 	float rad = 1;
+	
 
 private: /// Graphics stuff 
 	Mesh *mesh;

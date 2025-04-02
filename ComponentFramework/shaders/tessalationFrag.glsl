@@ -30,7 +30,7 @@ void main() {
     vec3 reflection = normalize(reflect(-lightDirFromEval, normalFromMap));
     float spec = max(dot(eyeDirFromEval, reflection), 0.0);
     spec = pow(spec,14.0);
-    vec4 outputColor = ka + (kd * diff) + (ks * spec);
+    vec4 outputColor = (ka + (kd * diff) + (ks * spec)) * kt;
     
     
     fragColor = mix(deepColor, outputColor, fogValFromEval);

@@ -14,8 +14,8 @@ private:
 	Matrix4 invNDC;			/// the inverse of the viewportNDC matrix
 	Vec3 beginV, endV;		/// Begin and end points after being transformed by invNDC
 public:
-	bool XaxisLock;
-	bool ZaxisLock;
+	bool XaxisLock = true;
+	bool ZaxisLock = true;
 	Trackball();
 	~Trackball();
 	Trackball(const Trackball&) = delete;

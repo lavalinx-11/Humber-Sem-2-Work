@@ -34,7 +34,7 @@ private:
 
 	// These variables will tells us how long each tentacle will be
 	// and the spacing between individual spheres
-	const int numSpheresPerAnchor = 10;
+	const int numSpheresPerAnchor = 100;
 	const float spacing = 1.0f;
 
 
@@ -60,7 +60,8 @@ private:
 	
 
 
-
+	int anchorIndex = 0;
+	int tentacleIndex = 0;
 	bool rolling = false;
 	bool drawInWireMode;
 	bool drawNormals;
