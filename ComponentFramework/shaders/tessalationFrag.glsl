@@ -33,6 +33,6 @@ void main() {
     vec4 outputColor = ka + (kd * diff) + (ks * spec);
     
     
-    fragColor = mix(deepColor, outputColor, fogValFromEval) * kt;
+    fragColor = mix(deepColor, outputColor, fogValFromEval);
   
 }

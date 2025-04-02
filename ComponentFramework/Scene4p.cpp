@@ -233,6 +233,7 @@ void Scene4p::Update(const float deltaTime) {
 	DualQuat line12 = triangleShape->getV1() & triangleShape->getV2();
 	DualQuat line20 = triangleShape->getV2() & triangleShape->getV0();
 
+	//why not working?
 	Vec4 pointOn01 = project(sphereA->pos, line01);
 	pointOnLine01->pos = VMath::perspectiveDivide(pointOn01);
 	Vec4 pointOn12 = project(sphereA->pos, line12);
