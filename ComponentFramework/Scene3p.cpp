@@ -15,6 +15,7 @@
 Scene3p::Scene3p()
 	: jellyfishHead{ nullptr }
 	, tentacleSpheres{ nullptr }
+	, reflectionShader{ nullptr }
 	, shader{ nullptr }
 	, drawInWireMode{ true }
 	, drawNormals{ true }
@@ -34,7 +35,6 @@ bool Scene3p::OnCreate() {
 	Debug::Info("Loading assets Scene3p: ", __FILE__, __LINE__);
 
 	
-
 	jellyfishHead = new Body();
 	jellyfishHead->OnCreate();
 	jellyfishHead->rad = 6;
@@ -52,6 +52,7 @@ bool Scene3p::OnCreate() {
 		// Move the anchor position for the next swing through this loop 
 		anchorPos += Vec3(spacing, 0, 0);
 	}
+
 	tentacleSpheres[0] = new Body();
 	for (int i = 0; i < numSpheresPerAnchor; i++) {
 		tentacleSpheres.push_back(new Body());
@@ -64,6 +65,7 @@ bool Scene3p::OnCreate() {
 			tentacleIndex = 0;
 		}
 	}
+	tentacleIndex = 0;
 	anchorIndex = 0;
 
 	drawNormalsShader = new Shader("shaders/normalVert.glsl", "shaders/normalFrag.glsl", nullptr, nullptr, "shaders/normalGeom.glsl");
@@ -74,7 +76,7 @@ bool Scene3p::OnCreate() {
 	
 	
 	cam = new Camera();
-	cam->SkySetup("textures/hallpx.png",
+	cam->SkySetup("textures/hallpx.png",	
 		"textures/hallpy.png",
 		"textures/hallpz.png",
 		"textures/hallnx.png",
@@ -84,13 +86,14 @@ bool Scene3p::OnCreate() {
 	);
 	cam->position = Vec3(0.0f, -2.0f, -5.5f);
 	shader = new Shader("shaders/texturePhongVert.glsl", "shaders/texturePhongFrag.glsl");
-	//shader = new Shader("shaders/defaultVert.glsl", "shaders/defaultFrag.glsl");
-
 	if (shader->OnCreate() == false) {
 		std::cout << "Shader failed ... we have a problem\n";
 	}
 
-
+	reflectionShader = new Shader("shaders/reflectionVert.glsl", "shaders/reflectionFrag.glsl");
+	if (reflectionShader->OnCreate() == false) {
+		std::cout << "Shader failed ... we have a problem\n";
+	}
 	cam->dontTrackY();
 	return true;
 }
@@ -140,6 +143,42 @@ void Scene3p::HandleEvents(const SDL_Event& sdlEvent) {
 			cam->SetPosition(posi);
 		}
 		break;
+		case SDL_SCANCODE_W: {
+			jellyfishHead->pos = jellyfishHead->pos + Vec3(0.0f, 0.0f, 0.25f);
+			for (int i = 0; i < 10; i++) {
+				anchors[i]->pos.z--;
+			}
+			break;
+		}
+
+		case SDL_SCANCODE_S: {
+			jellyfishHead->pos = jellyfishHead->pos + Vec3(0.0f, 0.0f, -0.25f);
+			for (int i = 0; i < 10; i++) {
+				anchors[i]->pos.z++;
+			}
+			break;
+		}
+		case SDL_SCANCODE_A: {
+			jellyfishHead->pos = jellyfishHead->pos + Vec3(-0.25f, 0.0f, 0.0f);
+			for (int i = 0; i < 10; i++) {
+				anchors[i]->pos.x--;
+			}
+			break;
+		}
+		case SDL_SCANCODE_D: {
+			jellyfishHead->pos = jellyfishHead->pos + Vec3(0.25f, 0.0f, 0.0f);
+			for (int i = 0; i < 10; i++) {
+				anchors[i]->pos.x++;
+			}
+			break;
+		}
+		case SDL_SCANCODE_SPACE: {
+			jellyfishHead->vel = Vec3(0.0f, 0.0f, -1.0f);
+			for (int i = 0; i < 10; i++) {
+				anchors[i]->pos.y++;
+			}
+			break;
+		}
 		case SDL_SCANCODE_N:
 			if (drawNormals == false) {
 				drawNormals = true;
@@ -149,9 +188,6 @@ void Scene3p::HandleEvents(const SDL_Event& sdlEvent) {
 			}
 			break;
 
-		case SDL_SCANCODE_SPACE:
-			
-			break;
 		}
 		break;
 
@@ -176,74 +212,63 @@ void Scene3p::HandleEvents(const SDL_Event& sdlEvent) {
 void Scene3p::Update(const float deltaTime) {
 	jellyfishHead->UpdatePos(deltaTime);
 
+
+
 	Vec3 offset = Vec3(0.0f, -2.0f, 40.0f);
 	Vec3 rotatedOffset = QMath::rotate(offset, cam->GetOrientation());
 	cameraPos = (jellyfishHead->pos + rotatedOffset);
 	cam->SetView(cam->GetOrientation(), cameraPos);
+		
+
+	//applying forces to the tentacle spheres
+		for (int i = 0; i < 100; i++) {
+			float dragCoeff = 2.5f;
+			// Start off with laminar flow, so drag force = -cv 
+			
+			Vec3 dragForce = -dragCoeff * tentacleSpheres[i]->vel;
+			Vec3 gravityForce = tentacleSpheres[i]->mass * Vec3(0, -10, 0);
+
+			// TODO – Rod constraint physics!
+			if (VMath::mag(tentacleSpheres[i]->vel) > 1.0f) {
+				// Switch to turbulent flow if the spheres are moving fast
+				// That means drag force = -cv^2
+				dragForce = -dragCoeff * tentacleSpheres[i]->vel *
+					VMath::mag(tentacleSpheres[i]->vel);
+			}
+			tentacleSpheres[i]->ApplyForce(gravityForce + dragForce);
+			// calculate a first approximation of velocity based on acceleration 
+			tentacleSpheres[i]->UpdateVel(deltaTime);
+			if (anchorIndex == 10) {
+				anchorIndex = 0;
+			}
+			if (tentacleIndex == 0) {
+			tentacleSpheres[i]->RodConstraint(deltaTime, anchors[anchorIndex]->pos,spacing * tentacleIndex + 1);
+			}
+			else {
+				Vec3 restraint = tentacleSpheres[i - 1]->pos;
+				tentacleSpheres[i]->RodConstraint(deltaTime, restraint, spacing);
+			}
+		tentacleIndex++;
+		if (tentacleIndex == 10) {
+			anchorIndex += 1;
+			tentacleIndex = 0;
+		}
+		// update position using corrected velocities based on rod constraint
+		tentacleSpheres[i]->UpdatePos(deltaTime);
+		// Match physics and graphics
+		// Increment the index counter for the next swing through this nested loop
+		}
+}
+
+
+
 	// This code went in my nested loop. Looping over all the anchors and then looping 
 	// over all the spheres per anchor
 
 	// Umer will just do this for one tentacle (you need to do all of them)
-	for (int i = 0; i < 10; i++) {
-		float dragCoeff = 0.5f;
-		// Start off with laminar flow, so drag force = -cv 
-		Vec3 dragForce = -dragCoeff * tentacleSpheres[i]->vel;
+	
 	
 
-		Vec3 gravityForce = tentacleSpheres[i]->mass * Vec3(0, -10, 0);
-		Vec3 windForce = Vec3(0, 0, 0);
-		tentacleSpheres[i]->ApplyForce(gravityForce + dragForce + windForce);
-		// calculate a first approximation of velocity based on acceleration 
-		tentacleSpheres[i]->UpdateVel(deltaTime);
-
-		// Straight line constraint
-		float slope = 5;
-		float y_intercept = 0;
-		//tentacleSpheres[i]->StraightLineConstraint(slope, y_intercept, deltaTime);
-
-		// Quadratic constraint
-		float a = 0.1;
-		float b = 0;
-		float c = -5;
-		//tentacleSpheres[i]->QuadraticConstraint(a, b, c, deltaTime);
-
-		float r = 1;
-		//tentacleSpheres[i]->CircleConstraint(r, circleCentrePos, deltaTime);
-		{
-			Vec3 circleCentrePos = tentacleSpheres[7]->pos;
-			tentacleSpheres[8]->CircleConstraint(r, circleCentrePos, deltaTime);
-		}
-		{
-			Vec3 circleCentrePos = tentacleSpheres[8]->pos;
-			tentacleSpheres[9]->CircleConstraint(r, circleCentrePos, deltaTime);
-		}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-		// update position using corrected velocities based on rod constraint 
-		tentacleSpheres[8]->UpdatePos(deltaTime);
-		tentacleSpheres[9]->UpdatePos(deltaTime);
-	}
-
-	
-}
 
 void Scene3p::Render() const {
 	/// Set the background color then clear the screen
@@ -253,6 +278,7 @@ void Scene3p::Render() const {
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	cam->RenderSkyBox();
 
+
 	if (drawInWireMode) {
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	}
@@ -261,20 +287,21 @@ void Scene3p::Render() const {
 	}
 
 
+	
 
-	glUseProgram(shader->GetProgram());
-	glUniformMatrix4fv(shader->GetUniformID("projectionMatrix"), 1, GL_FALSE, cam->GetProjectionMatrix());
-	glUniformMatrix4fv(shader->GetUniformID("viewMatrix"), 1, GL_FALSE, cam->GetViewAlt());
-	glUniformMatrix4fv(shader->GetUniformID("modelMatrix"), 1, GL_FALSE, jellyfishHead->GetModelMatrix());
+	glUseProgram(reflectionShader->GetProgram());
+	glUniformMatrix4fv(reflectionShader->GetUniformID("projectionMatrix"), 1, GL_FALSE, cam->GetProjectionMatrix());
+	glUniformMatrix4fv(reflectionShader->GetUniformID("viewMatrix"), 1, GL_FALSE, cam->GetViewAlt());
+	glUniformMatrix4fv(reflectionShader->GetUniformID("modelMatrix"), 1, GL_FALSE, jellyfishHead->GetModelMatrix());
 	mesh->Render(GL_TRIANGLES);
 	
 	for (Body* anchor : anchors) {
-		glUniformMatrix4fv(shader->GetUniformID("modelMatrix"), 1, GL_FALSE, anchor->GetModelMatrix());
+		glUniformMatrix4fv(reflectionShader->GetUniformID("modelMatrix"), 1, GL_FALSE, anchor->GetModelMatrix());
 		mesh->Render(GL_TRIANGLES);
 	}
-
-	for (Body* tentacleSphere : tentacleSpheres) {
-		glUniformMatrix4fv(shader->GetUniformID("modelMatrix"), 1, GL_FALSE, tentacleSphere->GetModelMatrix());
+	
+	for (int i = 0; i < 100; i++) {
+		glUniformMatrix4fv(reflectionShader->GetUniformID("modelMatrix"), 1, GL_FALSE, tentacleSpheres[i]->GetModelMatrix());
 		mesh->Render(GL_TRIANGLES);
 	}
 	

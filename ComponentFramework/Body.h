@@ -57,6 +57,7 @@ public:
 	// TODO for YOU
 	// See if you can figure out a sphere constraint
 	void SphereConstraint(float r, Vec3 sphereCentrePos, float deltaTime);
+	void RodConstraint(float deltaTime, Vec3 anchorPoint, float rodLength);
 };
 
 #endif

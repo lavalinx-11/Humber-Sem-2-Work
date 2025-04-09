@@ -277,27 +277,6 @@ void Scene2p::Update(const float deltaTime) {
 		}
 		sphereA->vel.z *= -1.0f;
 	}
-	//// Making a orbit camera
-	//// Visualizing Quaternions book says divide quaternions to get the change 
-	//Quaternion start = cam->GetOrientation();
-	//Quaternion end = trackball.getQuat();
-	//// Quaternion changeInOrientation = end / start;
-	//Quaternion changeInOrientation = end * QMath::inverse(start);
-
-	//cam->setOrientaion(trackball.getQuat());
-
-	//// Try Umer's scribbles on the board to orbit the sphere
-	//// Step 1 - Move camera so sphere is at origin
-	//cam->position -= sphereA->pos;
-	//// Step 2 - Rotate around the sphere
-	//cam->position = QMath::rotate(cam->position, changeInOrientation);
-	//// Step 3 - Move back
-	//cam->position += sphereA->pos;
-
-	////long way = translate + rotate + translate again
-	//Matrix4 T = MMath::translate(cam->GetPosition());	
-	//Matrix4 R = MMath::toMatrix4(cam->GetOrientation());
-
 
 }
 

@@ -129,6 +129,20 @@ void Body::SphereConstraint(float r, Vec3 sphereCentrePos, float deltaTime)
 	// Look at the circleConstraint for clues on how to code this...
 }
 
+void Body::RodConstraint(float deltaTime, Vec3 anchorPoint, float rodLength) {
+    Vec3 rodVector = anchorPoint - pos; // set it to the vector from body’s position to the anchor point
+    float positionConstraint = VMath::mag(rodVector) - rodLength; // set to the magnitude of the rodVector minus the 
+    if (VMath::mag(rodVector) < VERY_SMALL) { return; }
+    float JV = VMath::dot(rodVector, vel) / MATH::VMath::mag(rodVector);
+    const float baumgarteStabilizationParameter = 0.18; // Try tuning this number
+    float b = -(baumgarteStabilizationParameter / deltaTime) * positionConstraint;
+    float lambda = -mass * (JV + b);
+
+    Vec3 Jtransposed = rodVector / VMath::mag(rodVector);
+    Vec3 deltaVel = Jtransposed * lambda / mass;
+    vel += deltaVel;
+}
+
 
 
 void Body::OnDestroy() {

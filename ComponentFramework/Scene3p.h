@@ -36,7 +36,7 @@ private:
 	// and the spacing between individual spheres
 	const int numSpheresPerAnchor = 100;
 	const float spacing = 1.0f;
-
+	const int numAnchors = 10;
 
 	Vec3	   cameraPos;
 	Quaternion cameraOri;
@@ -45,6 +45,7 @@ private:
 	SkyBox* skyblox;
 
 	Shader* shader;
+	Shader* reflectionShader;
 	Shader* drawNormalsShader;
 
 
