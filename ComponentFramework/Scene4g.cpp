@@ -1,8 +1,8 @@
-#include <glew.h>
+#include "Scene4g.h"
 #include <iostream>
+#include <glew.h>
 #include <SDL.h>
 #include <MMath.h>
-#include "Scene4g.h"
 #include "Debug.h"
 #include "Mesh.h"
 #include "Shader.h"
@@ -10,9 +10,7 @@
 #include "Texture.h"
 #include <glm/glm.hpp>
 #include "Trackball.h"
-#include "Camera.h"
 #include <QMath.h>
-
 
 
 Scene4g::Scene4g() :
@@ -30,15 +28,15 @@ Scene4g::Scene4g() :
 	diffuseMap(nullptr),
 	terrain(nullptr)
 {
-	Debug::Info("Created Scene2: ", __FILE__, __LINE__);
+	Debug::Info("Created Scene4g: ", __FILE__, __LINE__);
 }
 
 Scene4g::~Scene4g() {
-	Debug::Info("Deleted Scene2: ", __FILE__, __LINE__);
+	Debug::Info("Deleted Scene4g: ", __FILE__, __LINE__);
 }
 
 bool Scene4g::OnCreate() {
-	Debug::Info("Loading assets Scene2: ", __FILE__, __LINE__);
+	Debug::Info("Loading assets Scene4g: ", __FILE__, __LINE__);
 	
 	// Sphere Definition
 	sub = new Body();
@@ -113,7 +111,7 @@ bool Scene4g::OnCreate() {
 }
 
 void Scene4g::OnDestroy() {
-	Debug::Info("Deleting assets Scene2: ", __FILE__, __LINE__);
+	Debug::Info("Deleting assets Scene4g: ", __FILE__, __LINE__);
 	sub->OnDestroy();
 	delete sub;
 
@@ -193,7 +191,10 @@ void Scene4g::Render() const {
 	
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	
+
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	cam->RenderSkyBox();
+
 	if (drawInWireMode) {
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	}

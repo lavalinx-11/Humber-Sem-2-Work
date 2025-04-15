@@ -13,6 +13,7 @@
 Scene1p::Scene1p()
 	: sphere{ nullptr }
 	, shader{ nullptr }
+	, cam{ nullptr }
 	, mesh{ nullptr }
 	, drawInWireMode{ true }
 	, plane{ nullptr }
@@ -51,7 +52,16 @@ bool Scene1p::OnCreate() {
 	if (shader->OnCreate() == false) {
 		std::cout << "Shader failed ... we have a problem\n";
 	}
+	cam = new Camera();
+	cam->SkySetup("textures/hallpx.png",
+		"textures/hallpy.png",
+		"textures/hallpz.png",
+		"textures/hallnx.png",
+		"textures/hallny.png",
+		"textures/hallnz.png"
 
+	);
+	cam->position = Vec3(0.0f, -2.0f, -5.5f);
 	projectionMatrix = MMath::perspective(45.0f, (16.0f / 9.0f), 0.5f, 100.0f);
 	viewMatrix = MMath::lookAt(Vec3(0.0f, -3.0f, 20.0f), Vec3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 1.0f, 0.0f));
 	//modelMatrix.loadIdentity();
@@ -166,16 +176,17 @@ void Scene1p::Render() const {
 	/// Set the background color then clear the screen
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+	
 	if (drawInWireMode) {
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	}
 	else {
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	}
+	
 	glUseProgram(shader->GetProgram());
-	glUniformMatrix4fv(shader->GetUniformID("projectionMatrix"), 1, GL_FALSE, projectionMatrix);
-	glUniformMatrix4fv(shader->GetUniformID("viewMatrix"), 1, GL_FALSE, viewMatrix);
+	glUniformMatrix4fv(shader->GetUniformID("projectionMatrix"), 1, GL_FALSE, cam->GetProjectionMatrix());
+	glUniformMatrix4fv(shader->GetUniformID("viewMatrix"), 1, GL_FALSE, cam->GetViewMatrix());
 	glUniformMatrix4fv(shader->GetUniformID("modelMatrix"), 1, GL_FALSE, sphere->GetModelMatrix());
 	mesh->Render(GL_TRIANGLES);
 	glUniformMatrix4fv(shader->GetUniformID("modelMatrix"), 1, GL_FALSE, plane->GetModelMatrix());

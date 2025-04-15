@@ -1,22 +1,31 @@
-#include "Scene3p.h"
-#include <glew.h>
+#include "Scene5g.h"
 #include <iostream>
+#include <glew.h>
 #include <SDL.h>
 #include <MMath.h>
 #include "Debug.h"
 #include "Mesh.h"
 #include "Shader.h"
 #include "Body.h"
-#include "SkyBox.h"
+#include "Texture.h"
+#include <glm/glm.hpp>
+#include <QMath.h>
 #include "Texture.h"
 
 
-
-Scene3p::Scene3p()
+Scene5g::Scene5g()
 	: jellyfishHead{ nullptr }
 	, tentacleSpheres{ nullptr }
 	, reflectionShader{ nullptr }
 	, shader{ nullptr }
+	, tessShader{ nullptr }
+	, texture { nullptr }
+	, terrainMesh {nullptr }
+	, terrainTexture { nullptr }
+	, heightMap { nullptr }
+	, normalMap { nullptr }
+	, diffuseMap { nullptr }
+	, terrain { nullptr }
 	, drawInWireMode{ true }
 	, drawNormals{ true }
 	, mesh{ nullptr }
@@ -24,17 +33,60 @@ Scene3p::Scene3p()
 	, cam{ nullptr }
 	, skyblox { nullptr }
 {
-	Debug::Info("Created Scene3p: ", __FILE__, __LINE__);
+	Debug::Info("Created Scene5g: ", __FILE__, __LINE__);
 }
 
-Scene3p::~Scene3p() {
-	Debug::Info("Deleted Scene3p: ", __FILE__, __LINE__);
+Scene5g::~Scene5g() {
+	Debug::Info("Deleted Scene5g: ", __FILE__, __LINE__);
 }
 
-bool Scene3p::OnCreate() {
-	Debug::Info("Loading assets Scene3p: ", __FILE__, __LINE__);
+bool Scene5g::OnCreate() {
+	Debug::Info("Loading assets Scene5g: ", __FILE__, __LINE__);
 
-	
+	// Sphere Definition
+	sub = new Body();
+	sub->OnCreate();
+	sub->pos = Vec3(0.0f, 1.0f, 0.0f);
+
+	mesh = new Mesh("meshes/Sphere.obj");
+	mesh->OnCreate();
+
+	texture = new Texture();
+	texture->LoadImage("textures/evilEye.jpg");
+
+	// Tessalation Check
+	GLint MaxPatchVertices = 0;
+	glGetIntegerv(GL_MAX_PATCH_VERTICES, &MaxPatchVertices);
+	printf("Max supported patch vertices %d\n", MaxPatchVertices);
+	glPatchParameteri(GL_PATCH_VERTICES, 3);
+
+	// Terrain Initialization
+	terrain = new Body();
+	terrain->OnCreate();
+	terrain->pos = Vec3(0.0f, 0.0f, 0.0f);
+	terrain->orientation = QMath::angleAxisRotation(90, Vec3(-1, 0, 0));
+
+	terrainMesh = new Mesh("meshes/Plane.obj");
+	terrainMesh->OnCreate();
+	terrainTexture = new Texture;
+	terrainTexture->LoadImage("textures/checkboardText.png");
+	terrainModelMatrix = MMath::translate(0.0f, -1.0f, 0.0f) * MMath::rotate(10, Vec3(1.0f, 0.0f, 0.0f)) * MMath::scale(40.0f, 1.0f, 40.0f);
+
+
+	// Height Map
+	heightMap = new Texture;
+	heightMap->LoadImage("textures/terrainHeight.png");
+
+	// Normal Map
+	normalMap = new Texture;
+	normalMap->LoadImage("textures/terrainNormal.png");
+
+	// Diffuse Map
+	diffuseMap = new Texture;
+	diffuseMap->LoadImage("textures/terrainDiffuse.png");
+
+
+	// Umer Jellyfish Stuff
 	jellyfishHead = new Body();
 	jellyfishHead->OnCreate();
 	jellyfishHead->rad = 6;
@@ -68,10 +120,6 @@ bool Scene3p::OnCreate() {
 	tentacleIndex = 0;
 	anchorIndex = 0;
 
-	drawNormalsShader = new Shader("shaders/normalVert.glsl", "shaders/normalFrag.glsl", nullptr, nullptr, "shaders/normalGeom.glsl");
-	if (drawNormalsShader->OnCreate() == false) {
-		std::cout << "drawNormalsShader failed ... we have a problem\n";
-	}
 
 	
 	
@@ -84,28 +132,56 @@ bool Scene3p::OnCreate() {
 		"textures/hallnz.png"
 
 	);
-	cam->position = Vec3(0.0f, -2.0f, -5.5f);
+	cam->position = Vec3(0.0f, -1.0f, -3.5f);
+
+	// Shaders
 	shader = new Shader("shaders/texturePhongVert.glsl", "shaders/texturePhongFrag.glsl");
 	if (shader->OnCreate() == false) {
 		std::cout << "Shader failed ... we have a problem\n";
+	}
+
+	drawNormalsShader = new Shader("shaders/normalVert.glsl", "shaders/normalFrag.glsl", nullptr, nullptr, "shaders/normalGeom.glsl");
+	if (drawNormalsShader->OnCreate() == false) {
+		std::cout << "drawNormalsShader failed ... we have a problem\n";
 	}
 
 	reflectionShader = new Shader("shaders/reflectionVert.glsl", "shaders/reflectionFrag.glsl");
 	if (reflectionShader->OnCreate() == false) {
 		std::cout << "Shader failed ... we have a problem\n";
 	}
-	cam->dontTrackY();
+
+	tessShader = new Shader("shaders/tessalationVert.glsl", "shaders/tessalationFrag.glsl",
+		"shaders/tessalationCtrl.glsl", "shaders/tessalationEval.glsl");
+	if (tessShader->OnCreate() == false) {
+		std::cout << "Shader failed ... we have a problem\n";
+	}
+
+	
 	return true;
 }
 
-void Scene3p::OnDestroy() {
+void Scene5g::OnDestroy() {
 	Debug::Info("Deleting assets Scene1: ", __FILE__, __LINE__);
-
-	jellyfishHead->OnDestroy();
-	delete jellyfishHead;
+	sub->OnDestroy();
+	delete sub;
 
 	mesh->OnDestroy();
 	delete mesh;
+
+	terrain->OnDestroy();
+	delete terrain;
+
+	terrainMesh->OnDestroy();
+	delete terrainMesh;
+
+	tessShader->OnDestroy();
+	delete tessShader;
+
+	reflectionShader->OnDestroy();
+	delete reflectionShader;
+
+	jellyfishHead->OnDestroy();
+	delete jellyfishHead;
 
 	shader->OnDestroy();
 	delete shader;
@@ -125,7 +201,7 @@ void Scene3p::OnDestroy() {
 
 }
 
-void Scene3p::HandleEvents(const SDL_Event& sdlEvent) {
+void Scene5g::HandleEvents(const SDL_Event& sdlEvent) {
 	trackball.HandleEvents(sdlEvent);
 	cam->HandelEvents(sdlEvent);
 	switch (sdlEvent.type) {
@@ -144,29 +220,29 @@ void Scene3p::HandleEvents(const SDL_Event& sdlEvent) {
 		}
 		break;
 		case SDL_SCANCODE_W: {
-			jellyfishHead->pos = jellyfishHead->pos + Vec3(0.0f, 0.0f, 0.25f);
-			for (int i = 0; i < 10; i++) {
-				anchors[i]->pos.z--;
-			}
-			break;
-		}
-
-		case SDL_SCANCODE_S: {
-			jellyfishHead->pos = jellyfishHead->pos + Vec3(0.0f, 0.0f, -0.25f);
+			jellyfishHead->pos = jellyfishHead->pos + Vec3(0.0f, 0.0f, 1.0f);
 			for (int i = 0; i < 10; i++) {
 				anchors[i]->pos.z++;
 			}
 			break;
 		}
+
+		case SDL_SCANCODE_S: {
+			jellyfishHead->pos = jellyfishHead->pos + Vec3(0.0f, 0.0f, -1.0f);
+			for (int i = 0; i < 10; i++) {
+				anchors[i]->pos.z--;
+			}
+			break;
+		}
 		case SDL_SCANCODE_A: {
-			jellyfishHead->pos = jellyfishHead->pos + Vec3(-0.25f, 0.0f, 0.0f);
+			jellyfishHead->pos = jellyfishHead->pos + Vec3(-1.0f, 0.0f, 0.0f);
 			for (int i = 0; i < 10; i++) {
 				anchors[i]->pos.x--;
 			}
 			break;
 		}
 		case SDL_SCANCODE_D: {
-			jellyfishHead->pos = jellyfishHead->pos + Vec3(0.25f, 0.0f, 0.0f);
+			jellyfishHead->pos = jellyfishHead->pos + Vec3(1.0f, 0.0f, 0.0f);
 			for (int i = 0; i < 10; i++) {
 				anchors[i]->pos.x++;
 			}
@@ -187,6 +263,20 @@ void Scene3p::HandleEvents(const SDL_Event& sdlEvent) {
 				drawNormals = false;
 			}
 			break;
+		case SDL_SCANCODE_T:
+		{
+			if (tessLevel < 31) {
+				tessLevel = tessLevel + 1;
+			}
+			break;
+		}
+		case SDL_SCANCODE_Y:
+		{
+			if (tessLevel > 0) {
+				tessLevel = tessLevel - 1;
+			}
+			break;
+		}
 
 		}
 		break;
@@ -209,16 +299,12 @@ void Scene3p::HandleEvents(const SDL_Event& sdlEvent) {
 
 
 
-void Scene3p::Update(const float deltaTime) {
+void Scene5g::Update(const float deltaTime) {
 	jellyfishHead->UpdatePos(deltaTime);
 
 
 
-	Vec3 offset = Vec3(0.0f, -2.0f, 40.0f);
-	Vec3 rotatedOffset = QMath::rotate(offset, cam->GetOrientation());
-	cameraPos = (jellyfishHead->pos + rotatedOffset);
-	cam->SetView(cam->GetOrientation(), cameraPos);
-		
+
 
 	//applying forces to the tentacle spheres
 		for (int i = 0; i < 100; i++) {
@@ -262,17 +348,21 @@ void Scene3p::Update(const float deltaTime) {
 
 
 
+	// This code went in my nested loop. Looping over all the anchors and then looping 
+	// over all the spheres per anchor
+
+	// Umer will just do this for one tentacle (you need to do all of them)
+	
+	
 
 
-
-void Scene3p::Render() const {
+void Scene5g::Render() const {
 	/// Set the background color then clear the screen
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	cam->RenderSkyBox();
-
 
 	if (drawInWireMode) {
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -282,11 +372,31 @@ void Scene3p::Render() const {
 	}
 
 
-	
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, heightMap->getTextureID());
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, normalMap->getTextureID());
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, diffuseMap->getTextureID());
+
+	glUseProgram(tessShader->GetProgram());
+	glUniformMatrix4fv(tessShader->GetUniformID("projectionMatrix"), 1, GL_FALSE, cam->GetProjectionMatrix());
+	glUniformMatrix4fv(tessShader->GetUniformID("viewMatrix"), 1, GL_FALSE, cam->GetViewMatrix());
+	glUniformMatrix4fv(tessShader->GetUniformID("modelMatrix"), 1, GL_FALSE, terrain->GetModelMatrix());
+	glUniform1f(tessShader->GetUniformID("tessalationLev"), tessLevel);
+	glUniform3fv(tessShader->GetUniformID("lightPos"), 1, Litpos);
+	terrainMesh->Render(GL_PATCHES);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, 0);
 
 	glUseProgram(reflectionShader->GetProgram());
 	glUniformMatrix4fv(reflectionShader->GetUniformID("projectionMatrix"), 1, GL_FALSE, cam->GetProjectionMatrix());
-	glUniformMatrix4fv(reflectionShader->GetUniformID("viewMatrix"), 1, GL_FALSE, cam->GetViewAlt());
+	glUniformMatrix4fv(reflectionShader->GetUniformID("viewMatrix"), 1, GL_FALSE, cam->GetViewMatrix());
 	glUniformMatrix4fv(reflectionShader->GetUniformID("modelMatrix"), 1, GL_FALSE, jellyfishHead->GetModelMatrix());
 	mesh->Render(GL_TRIANGLES);
 	
@@ -310,7 +420,7 @@ void Scene3p::Render() const {
 }
 
 
-void Scene3p::DrawNormals(const Vec4 color) const {
+void Scene5g::DrawNormals(const Vec4 color) const {
 
 	glUseProgram(drawNormalsShader->GetProgram());
 	glUniformMatrix4fv(drawNormalsShader->GetUniformID("projectionMatrix"), 1, GL_FALSE, cam->GetProjectionMatrix());

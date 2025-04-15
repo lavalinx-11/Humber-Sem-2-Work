@@ -48,7 +48,8 @@ private:
 	Vec4 Diffuse[5];
 	Vec4 Specular[5];
 	Vec3 Litpos;
-	
+	Vec3	   cameraPos;
+	Quaternion cameraOri;
 	// Regular Variables
 	bool drawInWireMode;
 	float tessLevel = 1.0f;

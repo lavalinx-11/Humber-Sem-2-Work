@@ -12,6 +12,7 @@
 #include "Scene3p.h"
 #include "Scene4g.h"
 #include "Scene4p.h"
+#include "Scene5g.h"
 
 SceneManager::SceneManager(): 
 	currentScene{nullptr}, window{nullptr}, timer{nullptr},
@@ -55,7 +56,7 @@ bool SceneManager::Initialize(std::string name_, int width_, int height_) {
 	}
 
 	/********************************   Default first scene   ***********************/
-	BuildNewScene(SCENE_NUMBER::SCENE4p);
+	BuildNewScene(SCENE_NUMBER::SCENE1p);
 	/********************************************************************************/
 	return true;
 }
@@ -98,21 +99,26 @@ void SceneManager::HandleEvents() {
 				BuildNewScene(SCENE_NUMBER::SCENE1g);
 				break;
 			case SDL_SCANCODE_F3:
-				BuildNewScene(SCENE_NUMBER::SCENE2g);
-				break;
-			case SDL_SCANCODE_F4:
 				BuildNewScene(SCENE_NUMBER::SCENE2p);
 				break;
+			case SDL_SCANCODE_F4:
+				BuildNewScene(SCENE_NUMBER::SCENE2g);
+				break;
 			case SDL_SCANCODE_F5:
-		
+				BuildNewScene(SCENE_NUMBER::SCENE3p);
+				break;
+			case SDL_SCANCODE_F6:
 				BuildNewScene(SCENE_NUMBER::SCENE3g);
 				break;
-
-			case SDL_SCANCODE_F6:
-
+			case SDL_SCANCODE_F7:
+				BuildNewScene(SCENE_NUMBER::SCENE4p);
+				break;
+			case SDL_SCANCODE_F8:
 				BuildNewScene(SCENE_NUMBER::SCENE4g);
 				break;
-
+			case SDL_SCANCODE_F9:
+				BuildNewScene(SCENE_NUMBER::SCENE5g);
+				break;
 			default:
 				break;
 			}
@@ -180,6 +186,11 @@ bool SceneManager::BuildNewScene(SCENE_NUMBER scene) {
 
 	case SCENE_NUMBER::SCENE4p:
 		currentScene = new Scene4p();
+		status = currentScene->OnCreate();
+		break;
+
+	case SCENE_NUMBER::SCENE5g:
+		currentScene = new Scene5g();
 		status = currentScene->OnCreate();
 		break;
 	default:

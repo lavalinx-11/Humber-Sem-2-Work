@@ -5,6 +5,8 @@
 #include <Matrix.h>
 #include <QMath.h>
 #include "Plane.h"
+#include "Trackball.h"
+#include "Camera.h"
 using namespace MATH;
 
 /// Forward declarations 
@@ -15,6 +17,8 @@ class Shader;
 
 class Scene1p : public Scene {
 private:
+
+
 	Body* plane;
 	Body* sphere;
 	Mesh* mesh;
@@ -23,6 +27,8 @@ private:
 	Plane* planeShape;
 	Matrix4 viewMatrix;
 	Matrix4 projectionMatrix;
+	Camera *cam;
+	Trackball trackball;
 	bool drawInWireMode;
 
 public:
