@@ -18,7 +18,7 @@ in vec3 normalFromCtrl[];
 
 out vec2 uvCoordFromEval;
 out vec3 normalFromEval;
-out vec3 eyeDirfromEval;
+out vec3 eyeDirFromEval;
 out vec3 lightDirFromEval;
 out float fogValFromEval;
 
@@ -51,7 +51,7 @@ void main() {
     vec3 vertPos = vec3(viewMatrix * modelMatrix * position);
     vec3 vertDir = normalize(vertPos);
 
-    eyeDirfromEval = -vertDir;
+    eyeDirFromEval = -vertDir;
     lightDirFromEval = normalize(lightPos - vertPos);
     float distance = length(vertPos);
     fogValFromEval = clamp(exp(-pow((distance*fogDensity), fogGradient)), 0.0,1.0);
